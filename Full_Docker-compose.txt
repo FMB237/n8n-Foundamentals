@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_new
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # - WEBHOOK_URL=https://spokeless-tectricial-latisha.ngrok-free.dev  
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres_new
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      - N8N_ENCRYPTION_KEY=your-secret-key-here
+    networks:
+      - n8n-new-network
+    volumes:
+      - n8n_new_data:/home/node/.n8n
+    depends_on:
+      - postgres_new
+
+  postgres_new:
+    image: postgres:15
+    container_name: postgres_new
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # Different external port
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8n_password
+      POSTGRES_DB: n8n
+    networks:
+      - n8n-new-network
+    volumes:
+      - postgres_new_data:/var/lib/postgresql/data
+
+  ollama_new:
+    image: ollama/ollama:latest
+    container_name: ollama_new
+    restart: unless-stopped
+    ports:
+      - "11435:11434"  # Different external port
+    networks:
+      - n8n-new-network
+    volumes:
+      - ollama_new_data:/root/.ollama
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama_new:11434
+    networks:
+      - n8n-new-network
+    depends_on:
+      - ollama_new
+
+  redis_new:
+    image: redis:latest
+    container_name: redis_new
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - n8n-new-network
+    volumes:
+      - redis_new_data:/data
+
+networks:
+  n8n-new-network:
+    driver: bridge
+
+volumes:
+  n8n_new_data:
+  postgres_new_data:
+  ollama_new_data:
+  redis_new_data: 
